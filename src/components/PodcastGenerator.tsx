@@ -1,23 +1,48 @@
 import { useState } from "react";
-import { Mic, Headphones } from "lucide-react";
+import { Mic, Headphones, AlertCircle } from "lucide-react";
 import LoadingDots from "./LoadingDots";
 
-type Status = "idle" | "loading" | "complete";
+type Status = "idle" | "loading" | "complete" | "error";
+
+const WEBHOOK_URL = "https://workflow.ccbp.in/webhook-test/94a0e3b9-9dda-4bf0-a752-ad5aa00b269e";
 
 const PodcastGenerator = () => {
   const [topic, setTopic] = useState("");
   const [status, setStatus] = useState<Status>("idle");
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!topic.trim()) return;
     
     setStatus("loading");
+    setAudioUrl(null);
     
-    // Simulate loading for 2-3 seconds
-    const delay = 2000 + Math.random() * 1000;
-    setTimeout(() => {
-      setStatus("complete");
-    }, delay);
+    try {
+      const response = await fetch(WEBHOOK_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: topic.trim() }),
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to generate podcast");
+      }
+      
+      const data = await response.json();
+      
+      if (data.audioFile) {
+        setAudioUrl(data.audioFile);
+        setStatus("complete");
+        setTopic(""); // Clear input for next topic
+      } else {
+        throw new Error("No audio file received");
+      }
+    } catch (error) {
+      console.error("Error generating podcast:", error);
+      setStatus("error");
+    }
   };
 
   const renderPlayerContent = () => {
@@ -25,16 +50,33 @@ const PodcastGenerator = () => {
       case "loading":
         return (
           <div className="flex flex-col items-center gap-3">
-            <p className="text-lg font-medium">Generating your podcast...</p>
+            <p className="text-lg font-medium">Creating podcast... please wait!</p>
             <LoadingDots />
           </div>
         );
       case "complete":
         return (
+          <div className="flex flex-col items-center gap-4 w-full">
+            <div className="flex items-center gap-2">
+              <Headphones className="w-8 h-8 text-primary" />
+              <p className="text-lg font-semibold text-primary">🎉 Podcast is ready! Click play to listen</p>
+            </div>
+            {audioUrl && (
+              <audio 
+                controls 
+                className="w-full max-w-md rounded-lg"
+                src={audioUrl}
+              >
+                Your browser does not support the audio element.
+              </audio>
+            )}
+          </div>
+        );
+      case "error":
+        return (
           <div className="flex flex-col items-center gap-3">
-            <Headphones className="w-10 h-10 text-primary" />
-            <p className="text-xl font-semibold text-primary">Feature coming soon!</p>
-            <p className="text-muted-foreground">We're working on bringing AI podcasts to you ✨</p>
+            <AlertCircle className="w-10 h-10 text-destructive" />
+            <p className="text-lg font-medium text-destructive">Oops! Something went wrong. Please try again</p>
           </div>
         );
       default:
