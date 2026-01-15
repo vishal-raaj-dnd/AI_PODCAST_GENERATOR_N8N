@@ -4,7 +4,7 @@ import LoadingDots from "./LoadingDots";
 
 type Status = "idle" | "loading" | "complete" | "error";
 
-const WEBHOOK_URL = "https://workflow.ccbp.in/webhook/a557d9b7-30a0-48ce-9727-a44b86b845e9";
+const WEBHOOK_URL = "https://workflow.ccbp.in/webhook-test/a557d9b7-30a0-48ce-9727-a44b86b845e9";
 
 const PodcastGenerator = () => {
   const [topic, setTopic] = useState("");
